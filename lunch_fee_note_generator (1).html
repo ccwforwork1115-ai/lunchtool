@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<title>午餐費收支結算表 說明／備註 生成工具</title>
+<style>
+  :root{
+    --ink:#1f2a37;
+    --paper:#fbfaf7;
+    --line:#c9c2b3;
+    --accent:#8a3b2f;
+    --accent-soft:#f1e4dd;
+    --field-bg:#ffffff;
+    --muted:#6b7280;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:"Noto Serif TC","PMingLiU","Microsoft JhengHei",serif;
+    padding:24px;
+  }
+  h1{
+    font-size:20px;
+    letter-spacing:2px;
+    margin:0 0 4px;
+    border-left:6px solid var(--accent);
+    padding-left:10px;
+  }
+  .sub{
+    color:var(--muted);
+    font-size:13px;
+    margin:0 0 20px 16px;
+  }
+  .layout{
+    display:grid;
+    grid-template-columns: 1.1fr 1fr;
+    gap:20px;
+    align-items:start;
+  }
+  @media (max-width: 900px){
+    .layout{grid-template-columns:1fr;}
+  }
+  .card{
+    background:var(--field-bg);
+    border:1px solid var(--line);
+    border-radius:6px;
+    padding:16px 18px;
+    margin-bottom:16px;
+  }
+  .card h2{
+    font-size:14px;
+    margin:0 0 12px;
+    color:var(--accent);
+    border-bottom:1px dashed var(--line);
+    padding-bottom:6px;
+  }
+  .row{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    margin-bottom:8px;
+    align-items:center;
+  }
+  .row label{
+    font-size:13px;
+    color:var(--ink);
+    min-width:90px;
+  }
+  .row input[type=text], .row input[type=number]{
+    flex:1;
+    min-width:70px;
+    padding:6px 8px;
+    border:1px solid var(--line);
+    border-radius:4px;
+    font-size:13px;
+    font-family:inherit;
+    background:#fffefb;
+  }
+  .row .unit{
+    font-size:12px;
+    color:var(--muted);
+  }
+  .subtotal{
+    font-size:12px;
+    color:var(--accent);
+    margin:4px 0 10px;
+    text-align:right;
+  }
+  .output-card{
+    position:sticky;
+    top:24px;
+  }
+  .output-card h2{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+  }
+  .copy-btn{
+    background:var(--accent);
+    color:#fff;
+    border:none;
+    border-radius:4px;
+    padding:4px 10px;
+    font-size:12px;
+    cursor:pointer;
+    font-family:inherit;
+  }
+  .copy-btn:hover{ opacity:0.88; }
+  pre.output{
+    white-space:pre;
+    overflow-x:auto;
+    background:var(--accent-soft);
+    border:1px solid var(--line);
+    border-radius:4px;
+    padding:12px 14px;
+    font-size:13.5px;
+    line-height:1.85;
+    min-height:120px;
+    margin:0 0 16px;
+    font-family:"Consolas","Noto Sans Mono CJK TC","PMingLiU",monospace;
+  }
+  .warn{
+    font-size:12px;
+    color:#b45309;
+    margin:6px 0 0;
+  }
+  .item-row{
+    display:flex;
+    align-items:flex-start;
+    gap:8px;
+    margin-bottom:8px;
+    padding:8px;
+    border:1px solid var(--line);
+    border-radius:4px;
+    background:#fffefb;
+  }
+  .item-row .label-no{
+    font-size:12px;
+    color:var(--accent);
+    min-width:24px;
+    padding-top:6px;
+    font-weight:bold;
+  }
+  .item-row .item-body{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+  }
+  .item-row .item-title{
+    font-size:12.5px;
+    color:var(--ink);
+    font-weight:bold;
+  }
+  .item-row .item-fields{
+    display:flex;
+    gap:6px;
+    flex-wrap:wrap;
+  }
+  .item-row .item-fields input[type=number]{
+    width:110px;
+    padding:5px 7px;
+    border:1px solid var(--line);
+    border-radius:4px;
+    font-size:12.5px;
+    font-family:inherit;
+  }
+  .item-row textarea{
+    flex:1;
+    min-height:38px;
+    padding:6px 8px;
+    border:1px solid var(--line);
+    border-radius:4px;
+    font-family:inherit;
+    font-size:13px;
+    resize:vertical;
+  }
+  .item-row .ctrl-btns{
+    display:flex;
+    flex-direction:column;
+    gap:3px;
+  }
+  .item-row button{
+    border:1px solid var(--line);
+    background:#fff;
+    border-radius:3px;
+    font-size:11px;
+    cursor:pointer;
+    padding:2px 6px;
+    line-height:1.4;
+  }
+  .item-row button:hover{ background:var(--accent-soft); }
+  .item-row button.del{ color:#b91c1c; }
+  .add-row-btns{
+    display:flex;
+    gap:6px;
+    flex-wrap:wrap;
+    margin-top:6px;
+  }
+  .add-row-btns button{
+    padding:6px 8px;
+    border:1px dashed var(--accent);
+    background:#fff;
+    color:var(--accent);
+    border-radius:4px;
+    font-size:12px;
+    cursor:pointer;
+    font-family:inherit;
+  }
+  .add-row-btns button:hover{ background:var(--accent-soft); }
+  .add-row-btns button:disabled{
+    opacity:0.4;
+    cursor:not-allowed;
+  }
+</style>
+</head>
+<body>
+
+<h1>午餐費收支結算表｜說明 ・ 備註 生成工具</h1>
+<p class="sub">填入本月數字，右側自動組成「說明」與「備註」欄位文字，可直接複製貼入結算表。說明一～五為固定架構；備註第一點固定為應收午餐費彙總，第二點起可加入各項收入科目或自訂備註，並自由排序。</p>
+
+<div class="layout">
+  <div class="inputs">
+
+    <div class="card">
+      <h2>基本設定</h2>
+      <div class="row">
+        <label>每人月費</label>
+        <input type="number" id="fee" value="850">
+        <span class="unit">元／人</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>二、應收午餐費 － 人數（說明欄用）</h2>
+      <div class="row">
+        <label>教職員人數</label>
+        <input type="number" id="staffCount" value="76">
+        <span class="unit">人</span>
+      </div>
+      <div class="row">
+        <label>工友人數</label>
+        <input type="number" id="workerCount" value="3">
+        <span class="unit">人</span>
+      </div>
+      <p id="staffCheck" class="warn"></p>
+    </div>
+
+    <div class="card">
+      <h2>教職員工繳費明細（備註第一點用）</h2>
+      <div class="row">
+        <label>學期繳人數</label>
+        <input type="number" id="staffSemCount" value="6">
+        <label>金額</label>
+        <input type="number" id="staffSemAmt" value="19440">
+      </div>
+      <div class="row">
+        <label>月繳人數</label>
+        <input type="number" id="staffMonCount" value="73">
+        <label>金額</label>
+        <input type="number" id="staffMonAmt" value="60200">
+      </div>
+      <p class="subtotal" id="staffSubtotalLabel"></p>
+    </div>
+
+    <div class="card">
+      <h2>學生繳費明細（備註第一點用，不含減免）</h2>
+      <div class="row">
+        <label>學期繳人數</label>
+        <input type="number" id="stuSemCount" value="393">
+        <label>金額</label>
+        <input type="number" id="stuSemAmt" value="1309560">
+      </div>
+      <div class="row">
+        <label>月繳人數</label>
+        <input type="number" id="stuMonCount" value="17">
+        <label>金額</label>
+        <input type="number" id="stuMonAmt" value="14930">
+      </div>
+      <p class="subtotal" id="stuSubtotalLabel"></p>
+    </div>
+
+    <div class="card">
+      <h2>三、減免午餐費</h2>
+      <div class="row">
+        <label>減免類別名稱</label>
+        <input type="text" id="exemptLabel" value="低收入戶學生" style="flex:2;">
+      </div>
+      <div class="row">
+        <label>減免學生人數</label>
+        <input type="number" id="exemptStuCount" value="70">
+        <span class="unit">人（金額 = 人數 × 每人月費，自動計算）</span>
+      </div>
+      <div class="row">
+        <label>全免工友人數</label>
+        <input type="number" id="exemptWorkerCount" value="0">
+        <span class="unit">人（金額自動計算）</span>
+      </div>
+      <p class="subtotal" id="exemptSubtotalLabel"></p>
+    </div>
+
+    <div class="card">
+      <h2>四、本月未繳午餐費</h2>
+      <div class="row">
+        <label>人數</label>
+        <input type="number" id="unpaidCount" value="0">
+        <label>金額</label>
+        <input type="number" id="unpaidAmt" value="0">
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>五、以前未繳午餐費</h2>
+      <div class="row">
+        <label>人數</label>
+        <input type="number" id="prevUnpaidCount" value="0">
+        <label>金額</label>
+        <input type="number" id="prevUnpaidAmt" value="0">
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>備註 － 第二點以後（收入科目，可自由排序）</h2>
+      <div class="row">
+        <label>午餐退費金額</label>
+        <input type="number" id="refundAmt" value="0">
+        <span class="unit">元（加入「退費」項目後，金額變動會自動更新文字）</span>
+      </div>
+      <div id="noteItemsContainer"></div>
+      <div class="add-row-btns" id="noteAddBtns"></div>
+    </div>
+
+  </div>
+
+  <div class="output">
+    <div class="card output-card">
+      <h2>說明 欄位輸出 <button class="copy-btn" onclick="copyBlock('explainOut')">複製</button></h2>
+      <pre class="output" id="explainOut"></pre>
+      <h2>備註 欄位輸出 <button class="copy-btn" onclick="copyBlock('noteOut')">複製</button></h2>
+      <pre class="output" id="noteOut"></pre>
+    </div>
+  </div>
+</div>
+
+<script>
+function num(id){
+  const v = parseFloat(document.getElementById(id).value);
+  return isNaN(v) ? 0 : v;
+}
+function txt(id){
+  return document.getElementById(id).value.trim();
+}
+function fmt(n){
+  return Math.round(n).toLocaleString('en-US');
+}
+function toChineseNum(n){
+  const map = ['〇','一','二','三','四','五','六','七','八','九','十','十一','十二','十三','十四','十五','十六'];
+  return map[n] || String(n);
+}
+
+/* ===== 對齊排版用的補空格函式 ===== */
+function padCount(n, width, blankIfZero){
+  if (blankIfZero && n === 0) return ' '.repeat(width);
+  const s = String(Math.round(n));
+  return s.length >= width ? s : ' '.repeat(width - s.length) + s;
+}
+function padAmt(n, width, blankIfZero){
+  if (blankIfZero && n === 0) return ' '.repeat(width);
+  const s = fmt(n);
+  return s.length >= width ? s : ' '.repeat(width - s.length) + s;
+}
+function padLabel2to3(label){
+  // 2字標籤（學生／工友）中間補一個全形空格，對齊 3 字的「教職員」
+  if (label.length === 2) return label[0] + '　' + label[1];
+  return label;
+}
+
+/* ===================== 備註：第二點起，收入科目清單 ===================== */
+
+const NOTE_ITEM_DEFS = {
+  refund:          { label:'午餐退費',           single:true, special:true },
+  carry_forward:   { label:'補繳以前月份午餐費', single:true, fields:['count','amt'] },
+  subsidy_mid_low: { label:'中低收入戶學生補助費', single:true, fields:['amt'] },
+  subsidy_poor:    { label:'清寒學生補助費',       single:true, fields:['amt'] },
+  subsidy_remote:  { label:'小型偏遠學校午餐補助費', single:true, fields:['amt'] },
+  other_income:    { label:'其他收入',             single:true, fields:['amt'] },
+  refund_deduct:   { label:'午餐退費收入減帳',     single:true, fields:['amt'] },
+  custom:          { label:'自訂項目',             single:false, fields:['text'] }
+};
+
+let noteItems = [];
+let noteSeq = 0;
+
+function addNoteItem(type){
+  const def = NOTE_ITEM_DEFS[type];
+  if (def.single && noteItems.some(it => it.type === type)) return;
+  noteItems.push({ id: noteSeq++, type, count:0, amt:0, text:'' });
+  renderNoteItems();
+}
+function removeNoteItem(id){
+  noteItems = noteItems.filter(it => it.id !== id);
+  renderNoteItems();
+}
+function moveNoteItem(id, dir){
+  const idx = noteItems.findIndex(it => it.id === id);
+  const newIdx = idx + dir;
+  if (newIdx < 0 || newIdx >= noteItems.length) return;
+  [noteItems[idx], noteItems[newIdx]] = [noteItems[newIdx], noteItems[idx]];
+  renderNoteItems();
+}
+
+function buildNoteAddButtons(){
+  const wrap = document.getElementById('noteAddBtns');
+  wrap.innerHTML = '';
+  Object.keys(NOTE_ITEM_DEFS).forEach(type => {
+    const def = NOTE_ITEM_DEFS[type];
+    const btn = document.createElement('button');
+    btn.textContent = '＋ ' + def.label;
+    btn.onclick = () => addNoteItem(type);
+    if (def.single) btn.id = 'noteaddbtn_' + type;
+    wrap.appendChild(btn);
+  });
+}
+
+function noteItemText(it){
+  const def = NOTE_ITEM_DEFS[it.type];
+  if (it.type === 'refund'){
+    return `午餐退費${fmt(num('refundAmt'))}元。`;
+  }
+  if (it.type === 'carry_forward'){
+    return `補繳以前月份午餐費：計 ${fmt(it.count)} 人 ${fmt(it.amt)} 元。`;
+  }
+  if (it.type === 'custom'){
+    return it.text.trim();
+  }
+  return `${def.label}${fmt(it.amt)}元。`;
+}
+
+function renderNoteItems(){
+  const container = document.getElementById('noteItemsContainer');
+  container.innerHTML = '';
+  noteItems.forEach((it, idx) => {
+    const def = NOTE_ITEM_DEFS[it.type];
+    const row = document.createElement('div');
+    row.className = 'item-row';
+
+    const label = document.createElement('div');
+    label.className = 'label-no';
+    label.textContent = toChineseNum(idx + 2) + '、';
+    row.appendChild(label);
+
+    const body = document.createElement('div');
+    body.className = 'item-body';
+
+    const title = document.createElement('div');
+    title.className = 'item-title';
+    title.textContent = def.label;
+    body.appendChild(title);
+
+    if (it.type === 'refund'){
+      const hint = document.createElement('div');
+      hint.style.fontSize = '12px';
+      hint.style.color = '#6b7280';
+      hint.textContent = '金額取自上方「午餐退費金額」欄位';
+      body.appendChild(hint);
+    } else if (it.type === 'custom'){
+      const ta = document.createElement('textarea');
+      ta.value = it.text;
+      ta.placeholder = '輸入這一點的備註內容';
+      ta.addEventListener('input', (e) => { it.text = e.target.value; recalc(); });
+      body.appendChild(ta);
+    } else {
+      const fieldsWrap = document.createElement('div');
+      fieldsWrap.className = 'item-fields';
+      if (def.fields.includes('count')){
+        const countInput = document.createElement('input');
+        countInput.type = 'number';
+        countInput.placeholder = '人數';
+        countInput.value = it.count;
+        countInput.addEventListener('input', (e) => { it.count = parseFloat(e.target.value)||0; recalc(); });
+        fieldsWrap.appendChild(countInput);
+      }
+      const amtInput = document.createElement('input');
+      amtInput.type = 'number';
+      amtInput.placeholder = '金額';
+      amtInput.value = it.amt;
+      amtInput.addEventListener('input', (e) => { it.amt = parseFloat(e.target.value)||0; recalc(); });
+      fieldsWrap.appendChild(amtInput);
+      body.appendChild(fieldsWrap);
+    }
+
+    row.appendChild(body);
+
+    const ctrls = document.createElement('div');
+    ctrls.className = 'ctrl-btns';
+    const up = document.createElement('button');
+    up.textContent = '▲';
+    up.onclick = () => moveNoteItem(it.id, -1);
+    const down = document.createElement('button');
+    down.textContent = '▼';
+    down.onclick = () => moveNoteItem(it.id, 1);
+    const del = document.createElement('button');
+    del.textContent = '✕';
+    del.className = 'del';
+    del.onclick = () => removeNoteItem(it.id);
+    ctrls.appendChild(up);
+    ctrls.appendChild(down);
+    ctrls.appendChild(del);
+    row.appendChild(ctrls);
+
+    container.appendChild(row);
+  });
+
+  Object.keys(NOTE_ITEM_DEFS).forEach(type => {
+    const def = NOTE_ITEM_DEFS[type];
+    if (!def.single) return;
+    const btn = document.getElementById('noteaddbtn_' + type);
+    if (btn) btn.disabled = noteItems.some(it => it.type === type);
+  });
+
+  recalc();
+}
+
+/* ===================== 主計算 ===================== */
+
+function recalc(){
+  const fee = num('fee');
+
+  const staffCount = num('staffCount');
+  const workerCount = num('workerCount');
+
+  const staffSemCount = num('staffSemCount'), staffSemAmt = num('staffSemAmt');
+  const staffMonCount = num('staffMonCount'), staffMonAmt = num('staffMonAmt');
+  const staffSubtotalCount = staffSemCount + staffMonCount;
+  const staffSubtotalAmt = staffSemAmt + staffMonAmt;
+
+  const stuSemCount = num('stuSemCount'), stuSemAmt = num('stuSemAmt');
+  const stuMonCount = num('stuMonCount'), stuMonAmt = num('stuMonAmt');
+  const stuSubtotalCount = stuSemCount + stuMonCount;
+  const stuSubtotalAmt = stuSemAmt + stuMonAmt;
+
+  const exemptLabel = txt('exemptLabel') || '減免學生';
+  const exemptStuCount = num('exemptStuCount');
+  const exemptStuAmt = exemptStuCount * fee;
+
+  const exemptWorkerCount = num('exemptWorkerCount');
+  const exemptWorkerAmt = exemptWorkerCount * fee;
+
+  const exemptTotalCount = exemptStuCount + exemptWorkerCount;
+  const exemptTotalAmt = exemptStuAmt + exemptWorkerAmt;
+
+  const studentTotalCount = stuSubtotalCount + exemptStuCount;
+
+  const grandCount = studentTotalCount + staffCount + workerCount;
+  const grandAmt = staffSubtotalAmt + stuSubtotalAmt + exemptStuAmt;
+
+  const unpaidCount = num('unpaidCount'), unpaidAmt = num('unpaidAmt');
+  const prevUnpaidCount = num('prevUnpaidCount'), prevUnpaidAmt = num('prevUnpaidAmt');
+
+  const checkEl = document.getElementById('staffCheck');
+  if (staffCount + workerCount !== staffSubtotalCount){
+    checkEl.textContent = `提醒：教職員(${staffCount})+工友(${workerCount})=${staffCount+workerCount}人，與教職員工繳費明細合計 ${staffSubtotalCount} 人不一致，請確認。`;
+  } else {
+    checkEl.textContent = '';
+  }
+
+  document.getElementById('staffSubtotalLabel').textContent =
+    `小計：${staffSubtotalCount} 人，共 ${fmt(staffSubtotalAmt)} 元`;
+  document.getElementById('stuSubtotalLabel').textContent =
+    `小計：${stuSubtotalCount} 人，共 ${fmt(stuSubtotalAmt)} 元`;
+  document.getElementById('exemptSubtotalLabel').textContent =
+    `減免小計：${exemptTotalCount} 人，共 ${fmt(exemptTotalAmt)} 元`;
+
+  const explain =
+`一、本月每人收午餐費 ${fmt(fee)} 元
+二、應收午餐費
+　　${padLabel2to3('學生')}  ${padCount(studentTotalCount,3)} 人(含減免${fmt(exemptStuCount)}人)
+　　教職員  ${padCount(staffCount,3)} 人
+　　${padLabel2to3('工友')}  ${padCount(workerCount,3)} 人
+　　合 計${fmt(grandCount)}人共${fmt(grandAmt)}元(詳備註)
+三、免收減收午餐費
+　　（1）全免及減收學生午餐費
+　　　　計 ${padCount(exemptStuCount,2)} 人 ${padAmt(exemptStuAmt,8)} 元
+　　（2）全免工友午餐費
+　　　　計 ${padCount(exemptWorkerCount,2)} 人 ${padAmt(exemptWorkerAmt,8)} 元
+　　　　共計 ${padCount(exemptTotalCount,2)} 人 ${padAmt(exemptTotalAmt,8)} 元
+四、本月未繳午餐費
+　　　　計 ${padCount(unpaidCount,2,true)} 人 ${padAmt(unpaidAmt,8,true)} 元
+　　　　（附繳納午餐費情形統計表）
+五、以前未繳午餐費
+　　計 ${padCount(prevUnpaidCount,2,true)} 人 ${padAmt(prevUnpaidAmt,8,true)} 元`;
+
+  document.getElementById('explainOut').textContent = explain;
+
+  let note =
+`一、應收午餐費：1.教職員工${fmt(staffCount+workerCount)}人：學期繳${fmt(staffSemCount)}人，${fmt(staffSemAmt)}元+月繳${fmt(staffMonCount)}人，${fmt(staffMonAmt)}元=${fmt(staffSubtotalAmt)}元；2.學生午餐費：學期繳${fmt(stuSemCount)}人，${fmt(stuSemAmt)}元+月繳${fmt(stuMonCount)}人，${fmt(stuMonAmt)}元=${fmt(stuSubtotalAmt)}元。3.${exemptLabel}午餐費：${fmt(exemptStuCount)}人*${fmt(fee)}元=${fmt(exemptStuAmt)}元。共計${fmt(grandAmt)}元。`;
+
+  noteItems.forEach((it, idx) => {
+    const content = noteItemText(it);
+    if (content){
+      note += `\n${toChineseNum(idx + 2)}、${content}`;
+    }
+  });
+
+  document.getElementById('noteOut').textContent = note;
+
+  // live-refresh readonly refund label text without stealing focus (handled via title hint, no textarea now)
+}
+
+document.querySelectorAll('#fee, #staffCount, #workerCount, #staffSemCount, #staffSemAmt, #staffMonCount, #staffMonAmt, #stuSemCount, #stuSemAmt, #stuMonCount, #stuMonAmt, #exemptLabel, #exemptStuCount, #exemptWorkerCount, #unpaidCount, #unpaidAmt, #prevUnpaidCount, #prevUnpaidAmt, #refundAmt').forEach(el=>{
+  el.addEventListener('input', recalc);
+});
+
+function copyBlock(id){
+  const text = document.getElementById(id).textContent;
+  navigator.clipboard.writeText(text).then(()=>{
+    const btn = event.target;
+    const original = btn.textContent;
+    btn.textContent = '已複製';
+    setTimeout(()=>{ btn.textContent = original; }, 1200);
+  }).catch(()=>{
+    alert('複製失敗，請手動選取文字複製。');
+  });
+}
+
+buildNoteAddButtons();
+addNoteItem('refund');
+renderNoteItems();
+recalc();
+</script>
+
+</body>
+</html>

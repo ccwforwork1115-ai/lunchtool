@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+tmp/
+.venv/
+venv/
+node_modules/
+.env
+.env.*
+!.env.example
+*.pdf
+*.xlsx
+*.xls
+*.csv
+*.png
+/跨年度測試/
