@@ -299,7 +299,7 @@ def main():
         ws.page_setup.scale = None
         ws.page_setup.paperHeight = None
         ws.page_setup.paperWidth = None
-        ws.page_setup.usePrinterDefaults = False
+        ws.page_setup.usePrinterDefaults = None
         for key, value in dict(left=0.25, right=0.25, top=0.3, bottom=0.3,
                                header=0.15, footer=0.15).items():
             setattr(ws.page_margins, key, value)

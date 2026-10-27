@@ -230,13 +230,14 @@ async function fitReportNumbers(zip,doms){
  xfs.setAttribute('count',String(xfs.children.length));zip.file('xl/styles.xml',new XMLSerializer().serializeToString(styles));
 }
 function setA4PrintLayout(doc,name){
+ // Excel loads these templates as portrait when usePrinterDefaults is explicitly false; omit it.
  const settlement=/^\d{2}結算$/.test(name);
  const ns='http://schemas.openxmlformats.org/spreadsheetml/2006/main',root=doc.documentElement;
  const order=['sheetPr','dimension','sheetViews','sheetFormatPr','cols','sheetData','sheetCalcPr','sheetProtection','protectedRanges','scenarios','autoFilter','sortState','dataConsolidate','customSheetViews','mergeCells','phoneticPr','conditionalFormatting','dataValidations','hyperlinks','printOptions','pageMargins','pageSetup','headerFooter','rowBreaks','colBreaks','customProperties','cellWatches','ignoredErrors','smartTags','drawing','legacyDrawing','legacyDrawingHF','picture','oleObjects','controls','webPublishItems','tableParts','extLst'];
  function ensure(parent,tag){let el=[...parent.children].find(n=>n.localName===tag);if(!el){el=doc.createElementNS(ns,tag);const next=parent===root?[...parent.children].find(n=>order.indexOf(n.localName)>order.indexOf(tag)):null;parent.insertBefore(el,next||null)}return el}
  const properties=ensure(root,'sheetPr'),fit=ensure(properties,'pageSetUpPr');fit.setAttribute('fitToPage','1');
  const margins=ensure(root,'pageMargins');for(const [key,value]of Object.entries({left:0.25,right:0.25,top:0.3,bottom:0.3,header:0.15,footer:0.15}))margins.setAttribute(key,String(value));
- const setup=ensure(root,'pageSetup');setup.setAttribute('paperSize','9');setup.setAttribute('orientation','landscape');setup.setAttribute('fitToWidth','1');setup.setAttribute('fitToHeight',settlement?'1':'0');setup.setAttribute('usePrinterDefaults','0');setup.removeAttribute('scale');setup.removeAttribute('paperHeight');setup.removeAttribute('paperWidth');
+ const setup=ensure(root,'pageSetup');setup.setAttribute('paperSize','9');setup.setAttribute('orientation','landscape');setup.setAttribute('fitToWidth','1');setup.setAttribute('fitToHeight',settlement?'1':'0');setup.removeAttribute('usePrinterDefaults');setup.removeAttribute('scale');setup.removeAttribute('paperHeight');setup.removeAttribute('paperWidth');
  for(const tag of ['rowBreaks','colBreaks'])for(const el of [...root.children].filter(n=>n.localName===tag))root.removeChild(el);
 }
 function widenSettlementAmountColumn(doc){for(const col of doc.getElementsByTagName('col'))if(+col.getAttribute('min')===2&&+col.getAttribute('max')===2){col.setAttribute('width','15.5');col.setAttribute('customWidth','1')}}
