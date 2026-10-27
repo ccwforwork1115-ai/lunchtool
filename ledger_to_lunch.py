@@ -15,6 +15,7 @@
 import argparse, csv, os, re, shutil, subprocess, sys, tempfile
 from collections import OrderedDict
 import openpyxl
+from copy import copy
 from parse_ledger import parse_ledger_pdf
 
 # ───────────── 設定區（可依實際情形修改） ─────────────
@@ -287,6 +288,30 @@ def main():
         value = str(definition.attr_text or '').strip()
         if not value or (name == '_xlfn_SINGLE' and value.lower() == 'none'):
             del wb.defined_names[name]
+    # A4 landscape: settlements fit one page; ledgers continue vertically.
+    for ws in wb.worksheets:
+        settlement = bool(re.fullmatch(r'\d{2}結算', ws.title))
+        ws.sheet_properties.pageSetUpPr.fitToPage = True
+        ws.page_setup.paperSize = ws.PAPERSIZE_A4
+        ws.page_setup.orientation = 'landscape'
+        ws.page_setup.fitToWidth = 1
+        ws.page_setup.fitToHeight = 1 if settlement else 0
+        ws.page_setup.scale = None
+        ws.page_setup.paperHeight = None
+        ws.page_setup.paperWidth = None
+        ws.page_setup.usePrinterDefaults = False
+        for key, value in dict(left=0.25, right=0.25, top=0.3, bottom=0.3,
+                               header=0.15, footer=0.15).items():
+            setattr(ws.page_margins, key, value)
+        for row in ws.iter_rows():
+            for cell in row:
+                if cell.value is not None and cell.data_type in ('n', 'f'):
+                    alignment = copy(cell.alignment)
+                    alignment.shrinkToFit = True
+                    alignment.wrapText = False
+                    cell.alignment = alignment
+        ws.row_breaks.brk = []
+        ws.col_breaks.brk = []
     wb.save(a.out)
     csv_path = os.path.splitext(a.out)[0] + "_轉換對照.csv"
     with open(csv_path, "w", newline="", encoding="utf-8-sig") as f:
