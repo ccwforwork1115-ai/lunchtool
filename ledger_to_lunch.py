@@ -22,13 +22,30 @@ from parse_ledger import parse_ledger_pdf
 SECTION_TITLES = ["免費學生午餐補助款", "教職員及其他相關午餐收費", "精進學校菜單方案補助款",
                   "午餐維運經費", "偏鄉學校午餐補助款", "小型偏遠學校午餐補助費", "三章一Q獎勵金"]
 
-# 會計子目(L碼) → 活頁簿區塊名稱。名稱與區塊相同的子目會自動對應，不用列在這裡
-FUND_MAP = {
-    "L30076": "免費學生午餐補助款",
-    "L20022": "教職員及其他相關午餐收費",
-    "L30077": "精進學校菜單方案補助款",
-    # "Lxxxxx": "午餐維運經費",
+# 子目代碼(L碼)各校不同，只依子目名稱對應活頁簿區塊。
+# 名稱包含區塊名稱即自動對應；名稱不同時，在此加入別名關鍵字
+FUND_ALIASES = {
+    "教職員及其他相關午餐收費": ["代扣午餐費", "教職員午餐"],
+    "精進學校菜單方案補助款": ["精進午餐", "精進菜單", "精進學校午餐"],
 }
+
+
+def norm_fund_text(s):
+    s = re.sub(r"\.pdf$", "", str(s or ""), flags=re.I)
+    return re.sub(r"[\s　._＿（）()【】\[\]{}、，,：:；;_-]", "", s).lower()
+
+
+def resolve_fund(name):
+    text = norm_fund_text(name)
+    if not text:
+        return None
+    for title in sorted(SECTION_TITLES, key=len, reverse=True):
+        if norm_fund_text(title) in text:
+            return title
+    for title, aliases in FUND_ALIASES.items():
+        if any(norm_fund_text(a) in text for a in aliases):
+            return title
+    return None
 
 CATEGORY_COLS = OrderedDict([("主食", "G"), ("副食", "H"), ("食油", "I"), ("調味品", "J"),
                              ("人事費", "K"), ("燃料費(水電)", "L"), ("維護設備費", "M"), ("雜支", "N")])
@@ -255,9 +272,9 @@ def main():
     for pdf in a.pdfs:
         hdr, entries = parse_ledger_pdf(pdf)
         code, name = hdr.get("code"), hdr.get("name")
-        fund = FUND_MAP.get(code) or next((t for t in SECTION_TITLES if t == name), None)
+        fund = resolve_fund(name) or resolve_fund(os.path.basename(pdf))
         if not fund:
-            sys.exit(f"{pdf}：子目 {code}（{name}）尚未對應到活頁簿區塊，請在 FUND_MAP 補上。")
+            sys.exit(f"{pdf}：子目 {code}（{name}）尚未對應到活頁簿區塊，請在 FUND_ALIASES 補上別名。")
         opening, months, rep = build_rows(entries, hdr["year"], sy)
         report += rep
         order = [8, 9, 10, 11, 12, 1, 2, 3, 4, 5, 6, 7]
