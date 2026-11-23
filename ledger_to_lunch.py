@@ -54,7 +54,7 @@ CATEGORY_ALIAS = {"設備維護費": "維護設備費", "維護設備": "維護�
 
 # 摘要沒有「-科目-」時，用關鍵字推定（順序即優先順序）
 KEYWORD_RULES = [
-    (("勞保", "健保", "薪資", "工資", "年終", "勞退", "二代健保", "體檢"), "人事費"),
+    (("勞保", "健保", "薪資", "工資", "年終", "勞退", "二代健保", "體檢", "健檢"), "人事費"),
     (("電費", "水費", "瓦斯費", "燃料", "水電"), "燃料費(水電)"),
     (("維修", "修繕", "維護", "設備"), "維護設備費"),
     (("米糧", "白米", "麵", "主食"), "主食"),
@@ -111,6 +111,10 @@ def pick_category(desc):
         c = CATEGORY_ALIAS.get(m.group(1), m.group(1))
         if c in CATEGORY_COLS:
             return c, "明確(摘要)", desc[m.end():]
+    for pm in re.finditer(r"[(（]([^()（）]+)[)）]", desc):   # 摘要括號標示科目，如「(人事費)」
+        c = CATEGORY_ALIAS.get(pm.group(1), pm.group(1))
+        if c in CATEGORY_COLS:
+            return c, "括號標示科目，請確認", desc
     for kws, cat in KEYWORD_RULES:
         if any(k in desc for k in kws):
             return cat, "關鍵字推定，請確認", desc
